@@ -1,0 +1,105 @@
+===============================================
+Complete Name Reference for d_mem.v
+===============================================
+
+=== Parameters (Configuration Settings) ===
+
+M_WIDTH           = Memory Width
+                    (Appears unused in code - likely legacy/reserved parameter)
+
+M_STACK           = Memory Stack Size
+                    Number of byte locations in RAM (array size: 0 to M_STACK-1)
+
+DATA_W            = Data Width
+                    Bit-width of data bus (typically 32 for 32-bit systems)
+
+PC_WIDTH          = Program Counter Width
+                    Bit-width of addresses (determines max addressable memory)
+
+STORE_M           = Store Mode Width
+                    Bit-width for mode signal (2 bits to encode 3 store types)
+
+ADDR_WIDTH        = Address Width
+                    Bit-width of each memory cell (typically 8 bits = 1 byte)
+
+DATA_INIT_FILE    = Data Initialization File
+                    Filename string for pre-loading RAM contents at startup
+
+
+=== Input Ports (Signals Coming In) ===
+
+clk               = Clock
+                    Timing signal - triggers write operations on rising edge
+
+n_rst             = Negative Reset
+                    Reset signal (active low) - currently unused in code
+
+wr_en             = Write Enable
+                    Control flag: 1=allow writes, 0=block writes
+
+rd_addr           = Read Address
+                    Memory location to read from (byte address)
+
+wr_addr           = Write Address
+                    Memory location to write to (byte address)
+
+mode              = Store Mode
+                    Specifies write granularity (byte/half-word/word)
+
+d_in              = Data Input
+                    Data value to be written into memory
+
+
+=== Output Ports (Signals Going Out) ===
+
+d_out             = Data Output
+                    32-bit data read from memory (4 consecutive bytes)
+
+
+=== Local Constants (Internal Definitions) ===
+
+ST_B              = Store Byte
+                    Mode code (2'b00) for writing 1 byte
+
+ST_H              = Store Half-word
+                    Mode code (2'b01) for writing 2 bytes (16 bits)
+
+ST_W              = Store Word
+                    Mode code (2'b10) for writing 4 bytes (32 bits)
+
+
+=== Internal Variables (Storage) ===
+
+ram               = Random Access Memory
+                    2D array storing all memory contents (byte-addressable)
+
+=== My addings ===
+
+2b'01 
+2- 2bit
+b- base(2)
+01- actual value (undsen utga)
+
+b-base(2), h-hexadecimal(16), d-decimal(10 toolliin system), 
+
+ram[100] <= 0xEF; gedeg ni clock duusahad ram[100] iin bairshild EF hadgalagdana
+
+cell gedg ni memory giin neg shirheg line (gyouretsu no gyo)
+memory stack(M_STACK) = cell Number
+
+add_width = cell iin urt bolno ( memorygiin urgun umda)
+
+Base 	System	      Prefix	Examples
+10	    Decimal	      None	      42, 100
+16	    Hexadecimal	 0x or 0X	 0x2A, 0xFF
+2	    Binary       0b or 0B	 0b101010
+8	    Octal	        0	       052
+
+reg is register but not hardware part. But, a data type(a variable that holds a value)
+
+memo
+
+Memory is typeless - programs track types!:
+The CPU gets all 4 bytes but must know: "I only stored 1 byte here, so I'll only use the lowest byte (0xEF) and ignore the rest."
+
+

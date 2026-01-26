@@ -1,0 +1,163 @@
+===============================================
+Complete Name Reference for reg.v
+===============================================
+
+=== Parameters (Configuration Settings) ===
+
+REG_W             = Register Width (Address Bits)
+                    Number of bits needed to address a register
+                    Example: 5 bits can address 32 registers (2^5 = 32)
+                    Default: -1 (must be overridden during instantiation)
+
+REG_S             = Register Size (Total Count)
+                    Total number of registers in the register file
+                    Example: 32 for RV32I (x0 through x31)
+                    Default: -1 (must be overridden during instantiation)
+
+DATA_W            = Data Width
+                    Bit-width of each register (data stored per register)
+                    Example: 32 bits for 32-bit RISC-V (RV32)
+                    Default: -1 (must be overridden during instantiation)
+
+
+=== Input Ports (Signals Coming In) ===
+
+clk               = Clock
+                    Timing signal - triggers write operations on rising edge
+                    All writes to registers happen synchronized to this clock
+
+a1                = Address 1 (Read Port 1)
+                    Register index for first read operation
+                    Bit-width: [REG_W-1:0]
+                    Example: a1=5 reads register x5
+
+a2                = Address 2 (Read Port 2)
+                    Register index for second read operation
+                    Bit-width: [REG_W-1:0]
+                    Example: a2=10 reads register x10
+
+a3                = Address 3 (Write Port)
+                    Register index for write operation
+                    Bit-width: [REG_W-1:0]
+                    Example: a3=7 writes to register x7
+
+wd                = Write Data
+                    Data value to be written into register at address a3
+                    Bit-width: [DATA_W-1:0]
+                    Example: 32-bit value to store in destination register
+
+we                = Write Enable
+                    Control flag: 1=allow write, 0=block write
+                    Write only happens if (we==1 AND a3!=0)
+
+
+=== Output Ports (Signals Going Out) ===
+
+rd1               = Read Data 1
+                    Data output from register addressed by a1
+                    Bit-width: [DATA_W-1:0]
+                    Returns all zeros if a1==0 (RISC-V x0 rule)
+                    Combinational output (updates immediately)
+
+rd2               = Read Data 2
+                    Data output from register addressed by a2
+                    Bit-width: [DATA_W-1:0]
+                    Returns all zeros if a2==0 (RISC-V x0 rule)
+                    Combinational output (updates immediately)
+
+
+=== Internal Variables (Storage) ===
+
+rf                = Register File
+                    Array storing all register values
+                    Structure: reg [DATA_W-1:0] rf [0:REG_S-1]
+                    Example: 32 registers × 32 bits each = 1024 bits total
+                    Index 0 is special (x0 hardwired to zero in RISC-V)
+
+x1                = Debug Wire (Register 1 Tap)
+                    Wire exposing the value of register 1 (rf[1])
+                    Used for debugging/waveform observation
+                    In RISC-V: x1 is 'ra' (return address register)
+                    Does not affect functionality (read-only tap)
+
+
+=== RISC-V Specific Behavior ===
+
+x0 Protection     = Register 0 Always Zero
+                    Read: Always returns all zeros regardless of rf[0] contents
+                    Write: Writes to a3==0 are blocked (if statement prevents)
+                    This enforces RISC-V ISA requirement: x0 is constant zero
+
+
+=== Operational Logic ===
+
+READ LOGIC (Combinational - Lines 19-20):
+    rd1 = (a1 == 0) ? {DATA_W{1'b0}} : rf[a1]
+    rd2 = (a2 == 0) ? {DATA_W{1'b0}} : rf[a2]
+    
+    - If address is 0, output all zeros
+    - Otherwise, output the current register value
+    - No clock required, updates immediately
+    - {DATA_W{1'b0}} creates DATA_W bits all set to 0
+
+WRITE LOGIC (Sequential - Lines 22-26):
+    always @(posedge clk)
+        if (we && (a3 != 0))
+            rf[a3] <= wd
+    
+    - Writes happen only on rising clock edge
+    - Two conditions: we==1 AND a3!=0
+    - Uses non-blocking assignment (<=)
+    - Write takes effect in next clock cycle
+
+
+=== My addings ===
+
+parameter = -1 meaning:
+    Sentinel value (invalid default)
+    Forces designer to override with real values
+    Catches configuration errors at compile time
+    Better than using 0 or arbitrary default
+
+Timing Model:
+    READS: Combinational (instant, no clock wait)
+    WRITES: Sequential (synchronized to clock edge)
+    This is standard for CPU register files
+
+Non-blocking assignment (<=):
+    Used in sequential logic (clocked blocks)
+    Schedules update for end of time step
+    All reads in same cycle see OLD value
+    NEW value visible starting next cycle
+
+{DATA_W{1'b0}} syntax:
+    Replication operator
+    Creates DATA_W copies of 1'b0
+    Example: {8{1'b0}} = 8'b00000000
+    Used to create all-zero vectors
+
+Port Count:
+    2 read ports (a1/rd1, a2/rd2): Feeds ALU operands
+    1 write port (a3/wd/we): Receives result from writeback stage
+    Typical for single-issue pipeline
+
+Register File vs reg keyword:
+    "rfile" module = hardware register file component
+    "reg" keyword = Verilog data type (holds state)
+    Don't confuse module name with data type
+
+Example Instantiation (from rv32i.v):
+    rfile #(
+        .REG_W(5),      // 5 bits to address 32 registers
+        .DATA_W(32),    // 32-bit data width
+        .REG_S(32)      // 32 total registers
+    ) rfile (
+        .clk(clk),
+        .a1(rs1),       // Source register 1
+        .a2(rs2),       // Source register 2
+        .a3(rd_W),      // Destination register (writeback)
+        .rd1(rdata1),   // Operand 1 output
+        .rd2(rdata2),   // Operand 2 output
+        .wd(wd),        // Write data input
+        .we(r_we)       // Write enable signal
+    );
