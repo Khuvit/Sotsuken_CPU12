@@ -1,5 +1,5 @@
-
 `include "defines.v"
+`include "reg.v" // reg.v zuer oruulahaa marttsan baidag bnshd
 
 module rv32i #(
     //  --------------------------------------------------------------------
