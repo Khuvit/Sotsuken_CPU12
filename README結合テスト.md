@@ -10,7 +10,7 @@ parameter DATA_INIT_FILE = "data_mem.dat" // Data memory
 ```
 
 ### Step A Integration Test
-**Purpose**: Validate load/store round-trip and branch decision making
+**Purpose**: Validate load/store round-trip and BEQ branch decision making
 
 **Test Sequence** (`mem_cpu1_stepA.bin`):
 ```
@@ -29,14 +29,14 @@ parameter DATA_INIT_FILE = "data_mem.dat" // Data memory
 **Pass Criterion**: `mem[8] == 32'h1` after 200 cycles
 
 **Test Coverage**:
--  Load word (LW) with immediate offset
+-  Load word (LW) with immediate offset(the number next to (x0) like 4)
 -  Store word (SW) with immediate offset
 -  ALU immediate operation (ADDI)
 -  Conditional branch (BEQ) with register comparison
 -  Unconditional jump (JAL) with offset
 -  Register file read/write
 -  Data memory read/write
--  Pipeline forwarding through all 5 stages
+-  Pipeline stage registers (_E/_M/_W) for basic stage separation
 
 ### Debug Testbench
 **File**: `tb_cpu1_stepA_debug.v`
@@ -47,7 +47,7 @@ Provides cycle-by-cycle instruction trace showing:
 - Register file state (non-zero values)
 - Memory operations (read/write address and data)
 
-**Usage**: Essential for identifying pipeline hazards, control flow bugs, and data path errors.
+**Usage**: Useful for tracing control flow and datapath activity (note: no hazard/forwarding logic implemented).
 
 ---
 
@@ -79,7 +79,7 @@ The VCD file contains all signal transitions for visual debugging in GTKWave.
 
 ## Architecture Overview
 
-### 5-Stage Pipeline
+### 5-Stage Pipeline (Basic Stage Registers)
 
 ```
 ┌────────┐   ┌────────┐   ┌─────────┐   ┌────────┐   ┌───────────┐
@@ -96,16 +96,23 @@ The VCD file contains all signal transitions for visual debugging in GTKWave.
 - `_M` suffix: Memory stage latches (opcode_M, alu_res_M, rd_M)
 - `_W` suffix: Writeback stage latches (opcode_W, rd_data_W, rd_W)
 
-### Control Hazard Mitigation
+**Limitations**:
+- No hazard detection, stalls, or forwarding/bypass logic
+- No pipeline flush logic
+- Branch handling implemented only for BEQ
+- JALR target does not clear bit0 (spec requires (rs1+imm) & ~1)
+- PC is 8-bit (`PC_W=8`), so targets are truncated to 8 bits
 
-**Problem**: By the time a jump instruction reaches Execute stage, 2-3 wrong instructions have already been fetched.
+### Control Hazard Handling (Current Implementation)
+
+**Problem**: Control flow changes can cause wrong-path fetches in a pipelined design.
 
 **Solution**: Early jump detection in Decode stage:
 - JAL/JALR decoded using `opcode` (combinational)
 - PC updated immediately: `pc_next = jal_target_D`
-- Reduces branch penalty from 3 cycles to 1 cycle
+- Reduces jump penalty, but no explicit flush/stall logic is implemented
 
-**Trade-off**: One "branch delay slot" instruction is still fetched but discarded. Future enhancement: execute delay slot instruction (MIPS-style) to eliminate waste.
+**Note**: There is no flush, stall, or delay-slot mechanism in the RTL; it simply selects `pc_next`.
 
 ---
 
@@ -196,7 +203,7 @@ Cycle 71: PC=0x28  Instruction=0xxxxxxxxx
 - **Total simulation time**: 1995 ns (199.5 cycles @ 10ns period)
 - **Active program cycles**: ~10 (cycles 63-72)
 - **Infinite loop detection**: Cycle 131 (PC stuck at 0x24)
-- **Pipeline depth**: 5 stages (1 instruction completes per cycle after fill)
+- **Pipeline depth**: 5 stages (no guarantee of 1 IPC; hazards are not handled)
 
 ### Bug Fixes Validated
 1. Immediate decoding: LW offset=0 works, SW offset=4 works, BEQ offset=16 works

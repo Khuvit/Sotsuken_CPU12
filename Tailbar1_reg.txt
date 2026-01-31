@@ -161,3 +161,52 @@ Example Instantiation (from rv32i.v):
         .wd(wd),        // Write data input
         .we(r_we)       // Write enable signal
     );
+
+LOOKS LIKE WE HAVE 3 ARRAYS:
+
+1024 MEANING, LIKE 32 AMOUNT OF REGS EACH CONTAINS 32 BIT AIGHT?,
+HOW MANY ARRAYS LIKE THIS WE HAVE OVERALL?
+
+Yes, exactly! 32 registers × 32 bits per register = 1024 bits total.
+
+Looking at your code, here are the arrays we have:
+
+
+rf[0:31] in reg.v — Register file: 32 registers × 32 bits = 1024 bits (for CPU registers x0-x31)
+ram[0:M_STACK-1] in i_mem.v — Instruction Memory: depends on M_STACK parameter (probably 256 instructions)
+ram[0:M_STACK-1] in d_mem.v — Data Memory: depends on M_STACK parameter (probably 256 words)
+
+
+IMMEDIATE VALUE HANDLING:
+
+ADD rd, rs1, rs2    // Add two REGISTERS: rd = rs1 + rs2
+Example: ADD x1, x2, x3  // x1 = x2 + x3
+
+ADDI rd, rs1, imm   // Add REGISTER + IMMEDIATE CONSTANT: rd = rs1 + imm
+Example: ADDI x1, x2, 10  // x1 = x2 + 10 (10 is hardcoded in instruction)
+
+LW rd, offset(rs1)  // Load Word: rd = memory[rs1 + offset]
+Example: LW x1, 8(x2)   // x1 = memory[x2 + 8]
+
+rs1 is NOT a value — it's an ADDRESS!
+
+This gives us which register to read, not the actual data in that register.
+
+Example:
+
+If instruction is: ADD x1, x2, x3
+
+inst[19:15] = 00010 (the number 2, meaning "register at address 2" = x2)
+rs1 = 5'b00010 (ADDRESS, not the value!)
+a1 = 5'b00010 (pass address to register file)
+rd1 = whatever value is stored in rf[2] (NOW we get the actual value!)
+
+Instruction says: "Use register at address 2"
+         ↓
+rs1 = 5'b00010 (ADDRESS: "which register")
+         ↓
+a1 = rs1 (pass ADDRESS to register file)
+         ↓
+Register file looks up: rf[00010] and outputs the actual DATA
+         ↓
+rd1 = the actual 32-bit VALUE (e.g., 0x12345678)
