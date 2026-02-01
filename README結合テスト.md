@@ -38,6 +38,26 @@ parameter DATA_INIT_FILE = "data_mem.dat" // Data memory
 -  Data memory read/write
 -  Pipeline stage registers (_E/_M/_W) for basic stage separation
 
+### Step B Integration Test
+**Purpose**: Signature-based integration test (PASS flag + multiple signature words)
+
+**Test Program** (`mem_cpu1_stepB.bin` + `data_cpu1_stepB.dat`):
+- Loads constants from data memory (0x00, 0x04)
+- Writes signature words to 0x80..0x90
+- Writes PASS flag to 0x08
+- Loops forever
+
+**Signature Map**:
+- 0x80 = 0xDEADBEEF
+- 0x84 = 0xCAFEBABE
+- 0x88 = 0x00000000
+- 0x8C = 0x00000000
+- 0x90 = 0x00000001
+
+**Pass Criterion**: PASS flag observed (`mem[0x08] == 32'h1`) and all signatures match
+
+**Note**: The CPU is pipelined without hazard detection/forwarding. The StepB program includes NOP spacing to avoid RAW hazards.
+
 ### Debug Testbench
 **File**: `tb_cpu1_stepA_debug.v`
 
@@ -56,7 +76,7 @@ Provides cycle-by-cycle instruction trace showing:
 ### Standard Test (Pass/Fail Only)
 ```bash
 iverilog -g2012 -o sim_stepA.vvp \
-    tb_cpu1_stepA.v rv32i.v i_mem.v d_mem.v reg.v alu.v defines.v
+  tb_cpu1_stepA.v rv32i.v i_mem.v d_mem.v alu.v
 
 vvp sim_stepA.vvp
 ```
@@ -64,9 +84,17 @@ vvp sim_stepA.vvp
 ### Debug Test (Instruction Trace)
 ```bash
 iverilog -g2012 -o sim_stepA_debug.vvp \
-    tb_cpu1_stepA_debug.v rv32i.v i_mem.v d_mem.v reg.v alu.v defines.v
+  tb_cpu1_stepA_debug.v rv32i.v i_mem.v d_mem.v alu.v
 
 vvp sim_stepA_debug.vvp
+```
+
+### Step B Test (Signature Check)
+```bash
+iverilog -g2012 -o sim_stepB.vvp \
+  tb_cpu1_stepB.v rv32i.v i_mem.v d_mem.v alu.v
+
+vvp sim_stepB.vvp
 ```
 
 ### Waveform Analysis
@@ -244,6 +272,6 @@ vvp sim_stepA_debug.vvp | sed -n '/Cycle 66/,/Cycle 67/p'
 
 ---
 
-**Document Version**: 1.0  
-**Last Updated**: December 23, 2025    
-**Status**: Step A integration test passing
+**Document Version**: 1.1  
+**Last Updated**: February 1, 2026    
+**Status**: Step A and Step B integration tests passing

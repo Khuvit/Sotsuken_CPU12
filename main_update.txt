@@ -1,5 +1,5 @@
 ================================================================================
-MAJOR ARCHITECTURE CHANGES: From Original to Current rv32i.v
+MAJOR ARCHITECTURE CHANGES: From Original to Current rv32i.v (CPU10 to CPU12)
 ================================================================================
 
 OVERVIEW:

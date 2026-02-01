@@ -1,4 +1,7 @@
 `timescale 1ns/1ps
+ // このファイルはSTEPAがなんかミスっていたのでTRACEをつけて実行するために作ったものです。
+ //  このファイルを無視していいです。
+
 
 module tb_cpu1_stepA;
 
