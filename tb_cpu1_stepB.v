@@ -1,7 +1,6 @@
 `timescale 1ns/1ps
 // tb_cpu1_stepB.v
 // CPU12 integration-style testbench (Signature method + timeout + per-check reporting)
-// NOTE: Replace MEM/DATA init filenames + expected signature values to match your StepB program.
 
 module tb_cpu1_stepB;
 
@@ -29,7 +28,7 @@ module tb_cpu1_stepB;
   // Instruction memory (StepB image)
   i_mem #(
     .M_STACK(256), .DATA_W(32), .PC_WIDTH(8), .ADDR_WIDTH(8),
-    .MEM_INIT_FILE("mem_cpu1_stepB.bin")   // <-- TODO: your StepB program
+    .MEM_INIT_FILE("mem_cpu1_stepB.bin")  
   ) u_imem (
     .clk(clk),
     .n_rst(rst_n),
@@ -40,7 +39,7 @@ module tb_cpu1_stepB;
   // Data memory (StepB image)
   d_mem #(
     .M_STACK(256), .DATA_W(32), .PC_WIDTH(8), .ADDR_WIDTH(8), .STORE_M(2),
-    .DATA_INIT_FILE("data_cpu1_stepB.dat") // <-- TODO: your StepB data image (or blank)
+    .DATA_INIT_FILE("data_cpu1_stepB.dat") 
   ) u_dmem (
     .clk(clk),
     .n_rst(rst_n),
@@ -88,22 +87,21 @@ module tb_cpu1_stepB;
     end
   endtask
 
-  // PASS flag location (same convention as StepA)
+  // PASS flag location (same as StepA)
   localparam [7:0] PASS_ADDR = 8'h08;
 
-  // Signature addresses (example: 0x80..)
-  // TODO: set these expected values to match your StepB program.
+  // Signature addresses (0x80..)
   localparam [7:0] SIG0 = 8'h80;
   localparam [7:0] SIG1 = 8'h84;
   localparam [7:0] SIG2 = 8'h88;
   localparam [7:0] SIG3 = 8'h8C;
   localparam [7:0] SIG4 = 8'h90;
 
-  localparam [31:0] EXP0 = 32'hDEADBEEF; // TODO
-  localparam [31:0] EXP1 = 32'hCAFEBABE; // TODO
-  localparam [31:0] EXP2 = 32'h00000000; // TODO
-  localparam [31:0] EXP3 = 32'h00000000; // TODO
-  localparam [31:0] EXP4 = 32'h00000001; // TODO
+  localparam [31:0] EXP0 = 32'hDEADBEEF; //
+  localparam [31:0] EXP1 = 32'hCAFEBABE; //
+  localparam [31:0] EXP2 = 32'h00000000; //
+  localparam [31:0] EXP3 = 32'h00000000; //
+  localparam [31:0] EXP4 = 32'h00000001; //
 
   // Timeout (cycles)
   localparam integer TIMEOUT_CYCLES = 2000;
@@ -130,7 +128,7 @@ module tb_cpu1_stepB;
       $display("TIMEOUT after %0d cycles. PASS flag not observed.", TIMEOUT_CYCLES);
     end
 
-    // Signature checks (adjust list as needed)
+    // Signature checks (list adjested)
     $display("---- Signature checks ----");
     check_sig(SIG0, EXP0);
     check_sig(SIG1, EXP1);

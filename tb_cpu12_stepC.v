@@ -1,27 +1,26 @@
 `timescale 1ns/1ps
 // tb_perf_compare_stepC.v
-// Performance-compare testbench for CPU12 vs CPU14 (cycle-based).
+// Performance-compare testbench for CPU12 vs CPU14 (cycle base + bubble shori check for CPU14 + NOP for CPU12).
 //
-// How to use (example with iverilog):
+// 
 //  CPU12:
 //    iverilog -g2012 -o simC12.vvp tb_perf_compare_stepC.v rv32i.v i_mem.v d_mem.v reg.v alu.v defines.v
 //    vvp simC12.vvp
 //
-//  CPU14 (compile CPU14 sources + define CPU14):
+//  CPU14
 //    iverilog -g2012 -DCPU14 -o simC14.vvp tb_perf_compare_stepC.v rv32i.v i_mem.v d_mem.v reg.v alu.v defines.v
 //    vvp simC14.vvp
 //
 // Notes:
-// - This TB measures "cycles until PASS flag" (mem[0x08] == 1).
-// - For CPU14, if the core exposes valid_W internally, we count retired instructions.
-// - Replace MEM/DATA init filenames + expected signatures to match your StepC program.
+// - TB measures "cycles until PASS flag" (mem[0x08] == 1).
+// - For CPU14, if the core exposes valid_W internally, starts count retired instructions.
 
 module tb_perf_compare_stepC;
 
   // clock/reset
   reg clk = 0;
   reg rst_n = 0;
-  always #5 clk = ~clk;  // fixed period for fair comparison
+  always #5 clk = ~clk;
 
   initial begin
     rst_n = 0;
@@ -101,12 +100,11 @@ module tb_perf_compare_stepC;
     end
   endtask
 
-  // Conventions
+
   localparam [7:0] PASS_ADDR = 8'h08;      // PASS flag word address (byte base)
   localparam integer TIMEOUT_CYCLES = 50000;
 
-  // Signature addresses (example region)
-  // TODO: set these to whatever your StepC program writes.
+  // Signature addresses
   localparam [7:0] SIG0 = 8'h80;
   localparam [7:0] SIG1 = 8'h84;
   localparam [7:0] SIG2 = 8'h88;
@@ -124,7 +122,7 @@ module tb_perf_compare_stepC;
   integer retired;
   reg saw_pass;
 
-  // Optional: CPU14 retirement counting (valid_W)
+  // CPU14 retirement counting (valid_W)
 `ifdef CPU14
   always @(posedge clk) begin
     if (!rst_n) begin
@@ -149,7 +147,6 @@ module tb_perf_compare_stepC;
 
     saw_pass = 0;
 
-    // Run until PASS flag observed or timeout
     for (cyc = 0; cyc < TIMEOUT_CYCLES && !saw_pass; cyc = cyc + 1) begin
       @(posedge clk);
       if (rst_n && (read_word(PASS_ADDR) == 32'h1)) begin
@@ -162,14 +159,12 @@ module tb_perf_compare_stepC;
       $display("TIMEOUT after %0d cycles. PASS flag not observed.", TIMEOUT_CYCLES);
     end
 
-    // Signature checks
     $display("---- Signature checks ----");
     check_sig(SIG0, EXP0);
     check_sig(SIG1, EXP1);
     check_sig(SIG2, EXP2);
     check_sig(SIG3, EXP3);
 
-    // Performance report
     $display("---- Performance report ----");
     $display("Cycles_to_PASS = %0d", cyc);
 `ifdef CPU14
@@ -184,7 +179,6 @@ module tb_perf_compare_stepC;
     $display("Retired_instructions = N/A (CPU12 mode)");
 `endif
 
-    // Final verdict
     if (saw_pass && !fail) begin
       $display("TEST RESULT: PASS");
     end else if (!saw_pass && !fail) begin
