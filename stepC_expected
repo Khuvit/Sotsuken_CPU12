@@ -1,0 +1,64 @@
+===============================================
+StepC Expected Results Documentation
+===============================================
+
+Program: mem_cpu12_stepC.bin
+Input Data: data_cpu12_stepC.dat
+
+===============================================
+INPUT DATA MEMORY
+===============================================
+
+data[0x00] = 0x44332211
+data[0x04] = 0x88776655
+data[0x08] = 0x12345678
+
+===============================================
+PROGRAM OPERATIONS
+===============================================
+
+1. Load x2 = data[0x00] = 0x44332211
+2. Load x3 = data[0x04] = 0x88776655
+3. Add x4 = x2 + x3 = 0x44332211 + 0x88776655 = 0xCCAA8866
+4. Store sig[0x80] = x4 = 0xCCAA8866
+
+5. Load x5 = data[0x08] = 0x12345678
+6. Add x6 = x4 + x5 = 0xCCAA8866 + 0x12345678 = 0xDF8F89DE
+7. Store sig[0x84] = x6 = 0xDF8F89DE
+
+8. Write sig[0x88] = 0x00000000
+9. Write sig[0x8C] = 0x00000000
+10. Write PASS flag at mem[0x08] = 0x00000001
+11. Loop forever
+
+===============================================
+EXPECTED SIGNATURE RESULTS
+===============================================
+
+Signature Address   Expected Value   Description
+-----------         ---------------  -----------
+0x80                0xCCAA8866       data[0] + data[4]
+0x84                0xDF8F89DE       (data[0] + data[4]) + data[8]
+0x88                0x00000000       Zero (no computation)
+0x8C                0x00000001       PASS flag (1 = success)
+
+===============================================
+PASS CRITERION
+===============================================
+
+mem[0x08] == 0x00000001 (PASS flag observed)
+
+All signatures must match expected values:
+- SIG0 (0x80) = 0xCCAA8866 ✓
+- SIG1 (0x84) = 0xDF8F89DE ✓
+- SIG2 (0x88) = 0x00000000 ✓
+- SIG3 (0x8C) = 0x00000001 ✓
+
+===============================================
+NOTES
+===============================================
+
+- Pipeline hazards are avoided using NOP spacing (3 NOPs between dependent instructions)
+- No forwarding/hazard detection in CPU12, so manual pipeline stalls are inserted
+- The test validates both functional correctness (arithmetic operations) and pipeline behavior
+- This is a performance baseline test; CPU14 with hazard detection should finish faster

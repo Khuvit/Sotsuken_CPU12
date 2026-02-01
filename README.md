@@ -10,6 +10,10 @@ parameter DATA_INIT_FILE = "data_mem.dat" // Data memory
 ```
 
 ### Step A Integration Test
+------------------------->
+
+
+
 **Purpose**: Validate load/store round-trip and BEQ branch decision making
 
 **Test Sequence** (`mem_cpu1_stepA.bin`):
@@ -38,7 +42,17 @@ parameter DATA_INIT_FILE = "data_mem.dat" // Data memory
 -  Data memory read/write
 -  Pipeline stage registers (_E/_M/_W) for basic stage separation
 
+
+
+
+
+
+
 ### Step B Integration Test
+------------------------->
+
+
+
 **Purpose**: Signature-based integration test (PASS flag + multiple signature words)
 
 **Test Program** (`mem_cpu1_stepB.bin` + `data_cpu1_stepB.dat`):
@@ -58,6 +72,31 @@ parameter DATA_INIT_FILE = "data_mem.dat" // Data memory
 
 **Note**: The CPU is pipelined without hazard detection/forwarding. The StepB program includes NOP spacing to avoid RAW hazards.
 
+### Step C Performance Comparison Test
+------------------------->
+
+
+
+
+**Purpose**: Measure cycle count to PASS and enable performance comparison
+
+**Test Program** (`mem_cpu12_stepC.bin` + `data_cpu12_stepC.dat`):
+- Load data from data memory (x2, x3)
+- Write computation results to signature region
+- Execute x5 = x2 + x3 addition
+- Save computation result as signature
+- Set PASS flag and exit
+
+**Signature Map**:
+- 0x80 = 0x44332211 (input data 1)
+- 0x84 = 0x88776655 (input data 2)
+- 0x88 = 0xCCAA8866 (computation result: 0x44332211 + 0x88776655)
+- 0x8C = 0x00000001 (PASS flag)
+
+**Pass Criterion**: PASS flag confirmed and all signatures match, cycle count captured
+
+**Performance Result**: PASS achieved in 39 cycles (mem[0x08] set to 1)
+
 ### Debug Testbench
 **File**: `tb_cpu1_stepA_debug.v`
 
@@ -73,41 +112,34 @@ Provides cycle-by-cycle instruction trace showing:
 
 ## Compilation and Execution
 
-### Standard Test (Pass/Fail Only)
+### Standard Test (MAIN USE OF THIS TEST : Pass/Fail Only)
 ```bash
-iverilog -g2012 -o sim_stepA.vvp \
-  tb_cpu1_stepA.v rv32i.v i_mem.v d_mem.v alu.v
+iverilog -g2012 -o sim_stepA.vvp tb_cpu1_stepA.v rv32i.v i_mem.v d_mem.v alu.v
 
 vvp sim_stepA.vvp
 ```
 
-### Debug Test (Instruction Trace)
+### Step B Test (MAIN USE OF THIS TEST :Pass/Fail + Signature Check)
 ```bash
-iverilog -g2012 -o sim_stepA_debug.vvp \
-  tb_cpu1_stepA_debug.v rv32i.v i_mem.v d_mem.v alu.v
-
-vvp sim_stepA_debug.vvp
-```
-
-### Step B Test (Signature Check)
-```bash
-iverilog -g2012 -o sim_stepB.vvp \
-  tb_cpu1_stepB.v rv32i.v i_mem.v d_mem.v alu.v
+iverilog -g2012 -o sim_stepB.vvp　tb_cpu1_stepB.v rv32i.v i_mem.v d_mem.v alu.v
 
 vvp sim_stepB.vvp
 ```
 
 ### Waveform Analysis
 ```bash
-gtkwave stepA.vcd
+gtkwave stepX.vcd ( X is A OR B OR C)
 ```
 The VCD file contains all signal transitions for visual debugging in GTKWave.
 
 ---
 
 ## Architecture Overview
+------------------------->
 
-### 5-Stage Pipeline (Basic Stage Registers)
+
+
+### 5-Stage Pipeline (ONLY calling like that because the main code was wriiten like imm_E and funct3_E, there is no HAZARD HANDLING SO BE CAREFUL WITH THE NAME )
 
 ```
 ┌────────┐   ┌────────┐   ┌─────────┐   ┌────────┐   ┌───────────┐
@@ -131,7 +163,7 @@ The VCD file contains all signal transitions for visual debugging in GTKWave.
 - JALR target does not clear bit0 (spec requires (rs1+imm) & ~1)
 - PC is 8-bit (`PC_W=8`), so targets are truncated to 8 bits
 
-### Control Hazard Handling (Current Implementation)
+### Control Hazard Handling (Current)
 
 **Problem**: Control flow changes can cause wrong-path fetches in a pipelined design.
 
@@ -144,62 +176,32 @@ The VCD file contains all signal transitions for visual debugging in GTKWave.
 
 ---
 
+
+
 ## Results Documentation Plan
+------------------------->
 
-### For Professor Review
 
-#### 1. Compilation Success Evidence
-**What to include**:
+
+### NOTES
+
+
+
+
+
+この以下は先生は無視していいです、最初に流れ確認で入れていたファイルだらけになっています。
+
+
+
+
+
+
+
+
+
+
+#### 1. Compilation 
 ```bash
-# Show the before (error) and after (clean compile)
-$ iverilog -g2012 -o sim_stepA.vvp tb_cpu1_stepA.v rv32i.v ...
-[No errors]
-$ ls -l sim_stepA.vvp
--rw-r--r-- 1 user group 45678 Dec 23 14:23 sim_stepA.vvp
-```
-
-#### 2. Test Execution Results
-**What to include**:
-```
-$ vvp sim_stepA.vvp
-WARNING: i_mem.v:17: $readmemb(mem_cpu1_stepA.bin): Not enough words...
-WARNING: d_mem.v:26: $readmemb(data_cpu1_stepA.dat): Not enough words...
-VCD info: dumpfile stepA.vcd opened for output.
-TEST RESULT: PASS (mem[8]=1)
-tb_cpu1_stepA.v:84: $finish called at 1995000 (1ps)
-```
-**Note**: Warnings are expected (256-byte memory, 40-byte program)
-
-#### 3. Instruction Trace Excerpt
-**What to include**: Key cycles from debug output showing:
-```
-Cycle 63: PC=0x00  Instruction=0x00002083
-  → LW x1, 0(x0)
-  Registers:
-  MEM READ:  addr=0x00, data=0x11223344
-
-Cycle 64: PC=0x04  Instruction=0x00102223
-  → SW x1, 4(x0)
-  Registers:
-    x1  = 0x11223344
-
-Cycle 66: PC=0x0c  Instruction=0x00208863
-  → BEQ x1, x2, 16
-  MEM WRITE: addr=0x04, data=0x11223344
-
-Cycle 70: PC=0x1c  Instruction=0x00100193
-  → ADDI x3, x0, 1
-  Registers:
-    x1  = 0x11223344
-    x2  = 0x11223344
-
-Cycle 71: PC=0x28  Instruction=0xxxxxxxxx
-  MEM WRITE: addr=0x08, data=0x00000001
-  ← This is the PASS indicator being written!
-
-*** REACHED END (infinite loop at 0x24) ***
-✓ TEST RESULT: PASS (mem[8]=1)
-```
 
 #### 4. Waveform
 ![alt text](image.png)
@@ -244,20 +246,12 @@ Cycle 71: PC=0x28  Instruction=0xxxxxxxxx
 
 ### Compile Everything
 ```bash
-iverilog -g2012 -o sim_stepA.vvp \
-    tb_cpu1_stepA.v rv32i.v i_mem.v d_mem.v reg.v alu.v defines.v
+iverilog -g2012 -o sim_stepA.vvp tb_cpu1_stepA.v rv32i.v i_mem.v d_mem.v reg.v alu.v defines.v
 ```
 
 ### Run Test
 ```bash
 vvp sim_stepA.vvp
-```
-
-### Debug with Trace
-```bash
-iverilog -g2012 -o sim_stepA_debug.vvp \
-    tb_cpu1_stepA_debug.v rv32i.v i_mem.v d_mem.v reg.v alu.v defines.v
-vvp sim_stepA_debug.vvp | grep -E "Cycle (6[3-9]|7[0-5])|TEST RESULT"
 ```
 
 ### View Waveforms
