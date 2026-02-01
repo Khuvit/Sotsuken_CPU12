@@ -187,6 +187,7 @@ vvp sim_stepA.vvp
 gtkwave stepA.vcd &
 ```
 
+デバッグ用ですが、ファイルは要らないと思って削除しています。
 ### 特定サイクルでの CPU 状態確認 (デバッグ用)
 ```bash
 vvp sim_stepA_debug.vvp | sed -n '/Cycle 66/,/Cycle 67/p'
